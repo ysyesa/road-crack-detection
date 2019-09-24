@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Road Crack Classification</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+</head>
+
+<body>
+<div class="jumbotron text-center">
+    <h1>Road Crack Classification</h1>
+    <p>Aplikasi Web Untuk Klasifikasi Keretakan Jalan</p>
+</div>
+<div class="container">
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h4>Pengantar</h4>
+        </div>
+        <div style="margin:20px;" class="panel-body">
+            <p>Klasifikasi keretakan pada jalan dilakukan dengan melakukan pemrosesan gambar yang menjadi masukan.</p>
+            <p>Terdapat beberapa tahap pemrosesan gambar sampai pada akhirnya gambar bisa diklasifikasikan.</p>
+            <h4>1. Grayscaling</h4>
+            <p>Grayscaling dilakukan dengan mengubah mode gambar yang awalnya RGB menjadi Grayscale.</p>
+            <p>Dengan mode Grayscale, setiap piksel pada gambar memiliki nilai 0 - 255, yang merepresentasikan intensitas cahaya yang dimilikinya.</p>
+            <p>Disebabkan karena piksel hanya memiliki satu nilai saja, pemrosesan gambar dapat dilakukan dengan lebih mudah.</p>
+            <h4>2. Penghilangan Noise</h4>
+            <p>Penghilangan noise dilakukan agar bagian gambar retak dapat terlihat lebih jelas. Penghilangan noise pada tugas ini dilakukan dengan operasi erosi.</p>
+            <p>Operasi erosi dilakukan dengan menggunakan kernel yang berbentuk persegi, misal ukuran 3x3, 5x5, atau 8x8.</p>
+            <p>Pada aplikasi ini, pengguna dapat mendefinisikan ukuran kernel yang dikehendaki</p>
+            <h4>3. Thresholding Untuk Binary Image</h4>
+            <p>Gambar perlu diubah untuk menjadi binary, yakni gambar yang piksel-pikselnya hanya mengandung dua kemungkinan nilai: 0 atau 255 (Hitam atau Putih).</p>
+            <p>Untuk melakukan ini, diperlukan nilai threshold. Piksel-piksel yang nilainya lebih kecil daripada threshold akan diganti nilainya dengan 0.</p>
+            <p>Di sisi lain, piksel-piksel yang nilainya lebih besar atau sama dengan threshold akan diganti nilainya dengan 255.</p>
+            <p>Pada aplikasi ini, pengguna dapat mendefinisikan nilai threshold yang dikehendaki.</p>
+            <h4>4. Region Selection</h4>
+            <p>Gambar binary saja belum cukup untuk pengklasifikasian. Hal ini disebabkan karena pola warna piksel-piksel pada gambar binary belum unik.</p>
+            <p>Region selection dilakukan untuk memilih piksel-piksel yang tergabung dalam satu region saja, sehingga pola warna piksel pada gambar menjadi unik.</p>
+        </div>
+        <div class="panel-heading">
+            <h4>Lakukan Klasifikasi Disini!</h4>
+        </div>
+        <div class="panel-body">
+            <div class="row">
+                <div class="col-md-5">
+                    <div style="margin: 20px;">
+                        <label for="id-kernel-size">Ukuran Kernel Untuk Operasi Erosi (Default: 20)</label>
+                        <input type="text" class="form-control" id="id-kernel-size" placeholder="Masukkan bilangan antara 1 - 30">
+                    </div>
+                    <div style="margin: 20px;">
+                        <label for="id-threshold-binary-image">Threshold Untuk Binary Image (Default: 128)</label>
+                        <input type="text" class="form-control" id="id-threshold-binary-image" placeholder="Masukkan bilangan antara 0 - 255">
+                    </div>
+                    <div style="margin: 20px;">
+                        <label for="id-threshold-region-selection">Threshold Untuk Region Selection (Default: 3)</label>
+                        <input type="text" class="form-control" id="id-threshold-region-selection" placeholder="Masukkan bilangan antara 1 - 5">
+                    </div>
+                    <div style="margin: 20px;">
+                        <button type="button" class="btn btn-success" id="id-button-submit" onclick="submitForClassification();" disabled>Lakukan</button>
+                        <div id="id-loading" style="display: none;">
+                            <h5>Gambar sedang diproses...</h5>
+                        </div>
+                        <div id="id-classification-result-container" style="display: none;">
+                            <h1 id="id-classification-result" align="center"></h1>
+                            <h5 align="center">Untuk melihat tahapan klasifikasi, lihat kolom Hasil dibawah.</h5>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <div style="margin: 20px;">
+                        <label for="id-upload-image">Gambar Yang Akan Diklasifikasi</label>
+                        <input type="file" class="custom-file-input" id="id-upload-image" onchange="getImage(this);">
+                    </div>
+                    <img height="300px;" style="margin-left: 20px; margin-bottom: 20px; border: 2px solid #000000" src="/static/im_no_image.png" id="id-image">
+                </div>
+            </div>
+        </div>
+        <div class="panel-heading" id="id-panel-hasil-heading" style="display: none;">
+            <h4>Hasil</h4>
+        </div>
+        <div class="panel-body" id="id-panel-hasil-body" style="display: none;">
+            <div style="margin: 20px;">
+                <img style="display: inline-block;" height="40px" src="/static/im_1.png">
+                <h4 style="margin-left: 10px; display: inline-block;">Grayscaling</h4>
+            </div>
+            <img id="id-hasil-1" height="300px;" style="margin-left: 20px; margin-bottom: 20px; border: 2px solid #000000" src="/static/im_no_image.png">
+            <div style="margin: 20px;">
+                <img style="display: inline-block;" height="40px" src="/static/im_2.png">
+                <h4 style="margin-left: 10px; display: inline-block;">Penghilangan Noise: Operasi Erosi</h4>
+            </div>
+            <img id="id-hasil-2" height="300px;" style="margin-left: 20px; margin-bottom: 20px; border: 2px solid #000000" src="/static/im_no_image.png">
+            <div style="margin: 20px;">
+                <img style="display: inline-block;" height="40px" src="/static/im_3.png">
+                <h4 style="margin-left: 10px; display: inline-block;">Thresholding Untuk Binary Image</h4>
+            </div>
+            <img id="id-hasil-3" height="300px;" style="margin-left: 20px; margin-bottom: 20px; border: 2px solid #000000" src="/static/im_no_image.png">
+            <div style="margin: 20px;">
+                <img style="display: inline-block;" height="40px" src="/static/im_4.png">
+                <h4 style="margin-left: 10px; display: inline-block;">Thresholding Untuk Region Selection</h4>
+            </div>
+            <img id="id-hasil-4" height="300px;" style="margin-left: 20px; margin-bottom: 20px; border: 2px solid #000000" src="/static/im_no_image.png">
+        </div>
+    </div>
+</div>
+</body>
+
+<script>
+    var FILE_IMAGE = "";
+
+    function getImage(input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(event) {
+                $("#id-image").attr("src", event.target.result);
+                $("#id-button-submit").prop("disabled", false);
+            };
+            FILE_IMAGE = input.files[0];
+            reader.readAsDataURL(FILE_IMAGE);
+        }
+    }
+
+    function validateInput(kernel_size, threshold_binary_image, threshold_region_selection) {
+        if (!(kernel_size === ""))
+            if (parseInt(kernel_size) <= 0 || parseInt(kernel_size) >= 31)
+                return false;
+        if (!(threshold_binary_image === ""))
+            if (parseInt(threshold_binary_image) <= -1 || parseInt(threshold_binary_image) >= 256)
+                return false;
+        if (!(threshold_region_selection === ""))
+            if (parseInt(threshold_region_selection) <= 0 || parseInt(threshold_region_selection) >= 6)
+                return false;
+        return true;
+    }
+
+    function submitForClassification() {
+        prepare();
+
+        var kernel_size = $("#id-kernel-size").val();
+        var threshold_binary_image = $("#id-threshold-binary-image").val();
+        var threshold_region_selection = $("#id-threshold-region-selection").val();
+
+        if (!(validateInput(kernel_size, threshold_binary_image, threshold_region_selection))) {
+            message = "Mohon pastikan masukan Anda sudah benar.";
+            alert(message);
+        }
+        $("#id-loading").show();
+        $("#id-button-submit").hide();
+
+        var data = new FormData();
+        data.append("kernel_size", kernel_size);
+        data.append("threshold_binary_image", threshold_binary_image);
+        data.append("threshold_region_selection", threshold_region_selection);
+        data.append("image", FILE_IMAGE);
+
+        $.ajax({
+            url: "/process_image",
+            type: "POST",
+            data: data,
+            contentType: false,
+            processData: false,
+            enctype: "multipart/form-data",
+            success: function (response) {
+                $("#id-loading").hide();
+                $("#id-button-submit").show();
+                displayClassificationResult(response);
+            },
+            error: function (error) {
+                alert(error);
+            }
+        })
+    }
+
+    function displayClassificationResult(data) {
+        $("#id-panel-hasil-heading").show();
+        $("#id-panel-hasil-body").show();
+
+        $("#id-classification-result").html(data["class"].toUpperCase());
+        $("#id-classification-result-container").show();
+
+        $("#id-hasil-1").attr("src", data["1"]);
+        $("#id-hasil-2").attr("src", data["2"]);
+        $("#id-hasil-3").attr("src", data["3"]);
+        $("#id-hasil-4").attr("src", data["4"]);
+    }
+
+    $(document).ready(function() {
+        prepare();
+    });
+
+    function prepare() {
+        $("#id-classification-result-container").hide();
+        $("#id-panel-hasil-heading").hide();
+        $("#id-panel-hasil-body").hide();
+    }
+</script>
+</html>
