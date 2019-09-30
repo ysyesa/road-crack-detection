@@ -1,7 +1,11 @@
+# FILE: image_processor.py
+
 from constants import Pixel, ImageClass
 from collections import deque
 
+# Kelas ImageProcessor berisi fungsi-fungsi yang diperlukan untuk memproses gambar
 class ImageProcessor:
+    # Fungsi get_binary_image digunakan untuk mengubah gambar menjadi gambar binary
     @staticmethod
     def get_binary_image(_image, _threshold):
         height, width = _image.shape[0], _image.shape[1]
@@ -13,6 +17,7 @@ class ImageProcessor:
                     _image[i][j] = Pixel.UNWANTED
         return _image
 
+    # Fungsi get_wanted_regions digunakan untuk menyeleksi region-region tertentu pada gambar binary
     @staticmethod
     def get_wanted_regions(_image):
         height, width = _image.shape[0], _image.shape[1]
@@ -78,6 +83,7 @@ class ImageProcessor:
                         regions.append(region)
         return regions
 
+    # Fungsi classify digunakan untuk mengklasifikasikan gambar
     @staticmethod
     def classify(_image):
         # Find image bounds with coefficient
@@ -128,6 +134,7 @@ class ImageProcessor:
         else:
             return ImageClass.TRAVERSAL_CRACK
 
+# Bagian ini tidak digunakan dalam program. Hanya untuk testing saja.
 if __name__ == "__main__":
     import cv2
     import numpy as np
