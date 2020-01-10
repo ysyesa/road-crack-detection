@@ -6,6 +6,11 @@ class Pixel:
     WANTED = 0
     UNWANTED = 255
 
+class ThresholdRecommendation:
+    DOWN = 0
+    UP = 1
+    NONE = 2
+
 # Kelas ImageClass berisi jenis-jenis keretakan.
 # Nilai pada variabel-variabel ini sebenarnya bebas.
 class ImageClass:

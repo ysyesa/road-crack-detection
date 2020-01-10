@@ -1,17 +1,18 @@
 import cv2
 import numpy as np
 from image_processor import ImageProcessor
-from constants import ImageClass
+from constants import ImageClass, ThresholdRecommendation
 from flask import Flask
 from flask import render_template
 from flask import request
 from flask import jsonify
 import random
 import string
+import copy
 
 app = Flask(__name__)
 
-STATIC_FILES_PATH = "/app/static/"
+STATIC_FILES_PATH = "./static/"
 
 @app.route("/")
 def index():
@@ -25,6 +26,7 @@ def process_image():
     DEFAULT_KERNEL_SIZE = 20
     DEFAULT_THRESHOLD_BINARY_IMAGE = 128
     DEFAULT_THRESHOLD_REGION_SELECTION = 3
+    THRESHOLD_FIXING_UNIT = DEFAULT_THRESHOLD_BINARY_IMAGE / 2
 
     # PROSES 2: Parameter-parameter request diperoleh
     # Terdapat tiga parameter yang akan diperoleh, yakni:
@@ -63,28 +65,45 @@ def process_image():
     image = cv2.erode(image, np.ones((kernel_size, kernel_size), np.int))
     cv2.imwrite(STATIC_FILES_PATH + "image_eroded." + extension, image)
 
-    # PROSES 7: Mengubah gambar menjadi binary dan gambar hasil disimpan
-    # Gambar binary adalah gambar yang piksel-pikselnya hanya memiliki dua kemungkinan warna, yakni hitam atau putih / 0 atau 255.
-    # Hal ini dilakukan dengan melakukan thresholding. Nilai threshold ditentukan oleh pengguna.
-    # Pada program ini, nilai default threshold telah ditentukan.
-    # Jika piksel memiliki nilai dibawah threshold, maka nilai piksel tersebut diubah menjadi 0.
-    # Jika piksel memiliki nilai diatas threshold, maka nilai piksel tersebut diubah menjadi 255.
-    image = ImageProcessor.get_binary_image(_image=image, _threshold=threshold_binary_image)
-    cv2.imwrite(STATIC_FILES_PATH + "image_binary." + extension, image)
+    while True:
+        print("Attempting threshold {0}".format(threshold_binary_image))
+        copied_image = copy.deepcopy(image)
+        # PROSES 7: Mengubah gambar menjadi binary dan gambar hasil disimpan
+        # Gambar binary adalah gambar yang piksel-pikselnya hanya memiliki dua kemungkinan warna, yakni hitam atau putih / 0 atau 255.
+        # Hal ini dilakukan dengan melakukan thresholding. Nilai threshold ditentukan oleh pengguna.
+        # Pada program ini, nilai default threshold telah ditentukan.
+        # Jika piksel memiliki nilai dibawah threshold, maka nilai piksel tersebut diubah menjadi 0.
+        # Jika piksel memiliki nilai diatas threshold, maka nilai piksel tersebut diubah menjadi 255.
+        copied_image = ImageProcessor.get_binary_image(_image=copied_image, _threshold=threshold_binary_image)
+        cv2.imwrite(STATIC_FILES_PATH + "image_binary." + extension, copied_image)
 
-    # PROSES 8: Menyeleksi region pada binary image dan gambar hasil disimpan
-    # Seleksi region dilakukan pada binary image untuk mendapatkan fitur yang benar-benar diinginkan untuk klasifikasi, yakni keretakan jalan itu sendiri.
-    # Pada Proses 7, ketika diperoleh gambar binary, keretakan jalan masih belum teridentifikasi karena masih terdapat banyak region dalam gambar.
-    # Dengan demikian, perlu dipilih region yang memiliki besar diatas threshold agar region yang tersisa pada gambar adalah keretakan jalan.
-    # Nilai threshold ini ditentukan oleh masukan dari pengguna. Jika pengguna tidak memberi masukan, maka digunakan nilai default.
-    regions = ImageProcessor.get_wanted_regions(image)
-    image = ImageProcessor.get_binary_image(_image=image, _threshold=0)
-    for region in regions:
-        if len(region) >= threshold_region_selection:
-            for pixel in region:
-                y, x = pixel[0], pixel[1]
-                image[y][x] = 0
-    cv2.imwrite(STATIC_FILES_PATH + "image_selected_region." + extension, image)
+        # PROSES 8: Menyeleksi region pada binary image dan gambar hasil disimpan
+        # Seleksi region dilakukan pada binary image untuk mendapatkan fitur yang benar-benar diinginkan untuk klasifikasi, yakni keretakan jalan itu sendiri.
+        # Pada Proses 7, ketika diperoleh gambar binary, keretakan jalan masih belum teridentifikasi karena masih terdapat banyak region dalam gambar.
+        # Dengan demikian, perlu dipilih region yang memiliki besar diatas threshold agar region yang tersisa pada gambar adalah keretakan jalan.
+        # Nilai threshold ini ditentukan oleh masukan dari pengguna. Jika pengguna tidak memberi masukan, maka digunakan nilai default.
+        regions = ImageProcessor.get_wanted_regions(copied_image)
+        copied_image = ImageProcessor.get_binary_image(_image=copied_image, _threshold=0)
+        for region in regions:
+            if len(region) >= threshold_region_selection:
+                for pixel in region:
+                    y, x = pixel[0], pixel[1]
+                    copied_image[y][x] = 0
+
+        threshold_recommendation = ImageProcessor.is_binary_image_appropriate_for_classification(copied_image)
+        if threshold_recommendation == ThresholdRecommendation.NONE:
+            image = copied_image
+            cv2.imwrite(STATIC_FILES_PATH + "image_selected_region." + extension, image)
+            break
+        else:
+            if threshold_recommendation == ThresholdRecommendation.UP:
+                threshold_binary_image = threshold_binary_image + THRESHOLD_FIXING_UNIT
+                print("UP threshold becomes {0}".format(threshold_binary_image))
+            elif threshold_recommendation == ThresholdRecommendation.DOWN:
+                threshold_binary_image = threshold_binary_image - THRESHOLD_FIXING_UNIT
+                print("DOWN threshold becomes {0}".format(threshold_binary_image))
+            THRESHOLD_FIXING_UNIT = THRESHOLD_FIXING_UNIT / 2
+            del copied_image
 
     # PROSES 9: Klasifikasi gambar berdasar hasil seleksi region
     # Klasifikasi bertujuan untuk menentukan apakah keretakan jalan berjenis TRAVERSAL, LONGITUDINAL, atau TURTLE.

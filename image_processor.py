@@ -1,10 +1,30 @@
 # FILE: image_processor.py
 
-from constants import Pixel, ImageClass
+from constants import Pixel, ImageClass, ThresholdRecommendation
 from collections import deque
 
 # Kelas ImageProcessor berisi fungsi-fungsi yang diperlukan untuk memproses gambar
 class ImageProcessor:
+    @staticmethod
+    def is_binary_image_appropriate_for_classification(_image):
+        total_wanted_pixel = 0
+        total_unwanted_pixel = 0
+        height, width = _image.shape[0], _image.shape[1]
+        for i in range(height):
+            for j in range(width):
+                if _image[i][j] == Pixel.WANTED:
+                    total_wanted_pixel = total_wanted_pixel + 1
+                else:
+                    total_unwanted_pixel = total_unwanted_pixel + 1
+        percentage = total_wanted_pixel / (total_wanted_pixel + total_unwanted_pixel) * 100
+        print("Percentage {0}".format(percentage))
+        if percentage < 7.0:
+            return ThresholdRecommendation.UP
+        elif percentage > 15.0:
+            return ThresholdRecommendation.DOWN
+        else:
+            return ThresholdRecommendation.NONE
+
     # Fungsi get_binary_image digunakan untuk mengubah gambar menjadi gambar binary
     @staticmethod
     def get_binary_image(_image, _threshold):
